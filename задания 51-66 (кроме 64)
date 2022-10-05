@@ -1,0 +1,171 @@
+51.Добавьте товар с именем "Cheese" и типом "food" в список товаров (Goods).
+В качестве первичного ключа (good_id) укажите количество записей в таблице + 1.
+
+INSERT INTO Goods
+SET good_id =(
+    SELECT COUNT(*) + 1
+    FROM Goods As a
+  ),
+  good_name = 'Cheese',
+  type =(
+    SELECT good_type_id
+    FROM GoodTypes
+    WHERE good_type_name = 'food'
+  );
+  
+52.Добавьте в список типов товаров (GoodTypes) новый тип "auto".
+В качестве первичного ключа (good_type_id) укажите количество записей в таблице + 1.
+
+INSERT INTO GoodTypes
+SET good_type_id =(
+    SELECT COUNT(*) + 1
+    FROM GoodTypes As a
+  ),
+  good_type_name = 'auto';
+  
+53.Измените имя "Andie Quincey" на новое "Andie Anthony".
+
+UPDATE FamilyMembers
+SET member_name = 'Andie Anthony'
+WHERE member_name = 'Andie Quincey'
+
+54.Удалить всех членов семьи с фамилией "Quincey".
+
+DELETE FROM FamilyMembers
+WHERE member_name LIKE '%Quincey'
+
+55.Удалить компании, совершившие наименьшее количество рейсов.
+
+DELETE FROM Company
+WHERE company.id IN (
+    SELECT company
+    FROM trip
+    GROUP BY company
+    HAVING COUNT(id) = (
+        SELECT MIN(COUNT)
+        FROM (
+            SELECT COUNT(id) AS count
+            FROM trip
+            GROUP BY company
+          ) as min_count
+      )
+  )
+  
+56.Удалить все перелеты, совершенные из Москвы (Moscow).
+  
+DELETE FROM Trip
+WHERE town_from = 'Moscow'
+
+57. UPDATE Timepair
+SET start_pair = start_pair + INTERVAL 30 MINUTE,
+  end_pair = end_pair + INTERVAL 30 MINUTE
+
+58.Добавить отзыв с рейтингом 5 на жилье, находящиеся по адресу "11218, Friel Place, New York", от имени "George Clooney"
+В качестве первичного ключа (id) укажите количество записей в таблице + 1.
+Резервация комнаты, на которую вам нужно оставить отзыв, уже была сделана, нужно лишь ее найти.
+
+INSERT INTO Reviews
+SET id =(
+    SELECT COUNT(*) + 1
+    FROM Reviews AS a
+  ),
+  rating = 5,
+  reservation_id =(
+    SELECT r.id
+    FROM Reservations as r
+      JOIN Rooms ON r.room_id = Rooms.id
+      JOIN Users ON r.user_id = Users.id
+    WHERE address = "11218, Friel Place, New York"
+      AND name = 'George Clooney'
+  );
+  
+59.Вывести пользователей,указавших Белорусский номер телефона ? Телефонный код Белоруссии +375.
+Поля в результирующей таблице:*
+
+SELECT *
+FROM Users
+WHERE phone_number LIKE '+375%'
+
+60.Выведите идентификаторы преподавателей, которые хотя бы один раз за всё время преподавали в каждом из одиннадцатых классов.
+Поля в результирующей таблице: teacher
+
+SELECT teacher
+FROM Schedule
+  JOIN Class ON Schedule.class = Class.id
+WHERE Class.name LIKE '11%'
+GROUP BY teacher
+HAVING COUNT(DISTINCT name) = 2
+
+61.Выведите список комнат, которые были зарезервированы в течение 12 недели 2020 года.
+Поля в результирующей таблице:Rooms.* 
+
+SELECT Rooms.*
+FROM Rooms
+  JOIN Reservations ON Rooms.id = Reservations.room_id
+WHERE WEEK(start_date, 1) = 12
+  AND YEAR(start_date) = 2020;
+  
+62.Вывести в порядке убывания популярности доменные имена 2-го уровня, используемые пользователями для электронной почты. Полученный результат необходимо дополнительно отсортировать по возрастанию названий доменных имён.
+Поля в результирующей таблице: domain count
+Для эл. почты index@gmail.com доменным именем 2-го уровня будет gmail.com.
+
+SELECT SUBSTRING_INDEX (email, '@', -1) AS domain,
+  COUNT(SUBSTRING_INDEX (email, '@', -1)) AS count
+FROM Users
+GROUP BY domain
+ORDER BY count DESC,
+  domain
+  
+ 63.Выведите отсортированный список (по возрастанию) имен студентов в виде Фамилия.И.О.
+Поля в результирующей таблице:name
+
+SELECT CONCAT(
+    last_name,
+    '.',
+    LEFT(first_name, 1),
+    '.',
+    LEFT(middle_name, 1),
+    '.'
+  ) AS name
+FROM Student
+ORDER BY last_name,
+  first_name
+  
+64.Вывести количество бронирований по каждому месяцу каждого года, в которых было хотя бы 1 бронирование. Результат отсортируйте в порядке возрастания даты бронирования.
+Поля в результирующей таблице:
+year
+month
+amount
+Используйте конструкцию "as year", "as month" и "as amount" для вывода года и месяца бронирования, количества таких бронирований соответственно.
+
+добавить решение
+
+65.Необходимо вывести рейтинг для комнат, которые хоть раз арендовали, как среднее значение рейтинга отзывов округленное до целого вниз.
+Поля в результирующей таблице:
+room_id
+rating
+
+SELECT room_id,
+  FLOOR(AVG(rating)) AS rating
+FROM Reservations
+  JOIN Reviews ON Reservations.id = Reviews.reservation_id
+GROUP BY room_id
+ORDER BY rating DESC
+
+66.Вывести список комнат со всеми удобствами (наличие ТВ, интернета, кухни и кондиционера), а также общее количество дней и сумму за все дни аренды каждой из таких комнат.
+Поля в результирующей таблице:
+home_type
+address
+days
+total_fee
+Используйте конструкции "as days" и "as total_fee" для вывода количества дней и суммы аренды, соответственно.
+Если комната не сдавалась, то количество дней и сумму вывести как 0.
+
+SELECT home_type, address, IFNULL(SUM(TIMESTAMPDIFF(DAY, start_date, 
+end_date)), 0) AS days, IFNULL(SUM(total),0) AS total_fee
+FROM Rooms
+LEFT JOIN Reservations
+    ON Rooms.id = Reservations.room_id 
+WHERE (has_internet, has_tv, has_kitchen, has_air_con) =(1,1,1,1)
+GROUP BY Rooms.id 
+
