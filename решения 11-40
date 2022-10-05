@@ -1,0 +1,303 @@
+11.Вывести пассажиров с самым длинным именем
+Поля в результирующей таблице:name
+
+SELECT DISTINCT name
+FROM passenger
+WHERE LENGTH(name) = (
+    SELECT MAX(LENGTH(name))
+    FROM passenger
+  )
+  
+12.Вывести id и количество пассажиров для всех прошедших полётов
+Поля в результирующей таблице:
+trip count
+Используйте конструкцию "as count" для агрегатной функции подсчета количества пассажиров. Это необходимо для корректной проверки.
+
+SELECT trip,
+  COUNT(passenger) AS count
+FROM Pass_in_trip
+GROUP BY trip
+
+13.Вывести имена людей, у которых есть полный тёзка среди пассажиров
+Поля в результирующей таблице:name
+
+SELECT name
+FROM passenger
+GROUP BY name
+HAVING COUNT(name) > 1
+
+14.В какие города летал Bruce Willis
+Поля в результирующей таблице:town_to
+
+SELECT DISTINCT town_to
+FROM trip
+  JOIN Pass_in_trip ON trip.id = Pass_in_trip.trip
+  JOIN Passenger ON Pass_in_trip.passenger = passenger.id
+WHERE name = 'Bruce Willis'
+
+15.Во сколько Стив Мартин (Steve Martin) прилетел в Лондон (London)
+Поля в результирующей таблице:time_in
+
+SELECT time_in
+FROM trip
+  LEFT JOIN Pass_in_trip ON trip.id = Pass_in_trip.trip
+  LEFT JOIN passenger ON Pass_in_trip.passenger = passenger.id
+WHERE name = 'Steve Martin'
+  AND town_to = 'London'
+ 
+16.Вывести отсортированный по количеству перелетов (по убыванию) и имени (по возрастанию) список пассажиров, совершивших хотя бы 1 полет.
+Поля в результирующей таблице:name, count
+Используйте конструкцию "as count" для агрегатной функции подсчета количества перелетов. Это необходимо для корректной проверки.
+
+SELECT name,
+  COUNT(*) AS count
+FROM Passenger
+  RIGHT JOIN Pass_in_trip ON Passenger.id = Pass_in_trip.passenger
+GROUP BY passenger
+HAVING COUNT(trip) > 0
+ORDER BY COUNT(trip) DESC,
+  name
+
+17.Определить, сколько потратил в 2005 году каждый из членов семьи
+Поля в результирующей таблице:
+member_name
+status
+costs
+Используйте конструкцию "as costs" для отображения затраченной суммы членом семьи. Это необходимо для корректной проверки.
+
+SELECT member_name,
+  status,
+  SUM(amount * unit_price) AS costs
+FROM FamilyMembers
+  RIGHT JOIN Payments ON FamilyMembers.member_id = Payments.family_member
+WHERE YEAR(date) = 2005
+GROUP BY member_name,
+  status
+
+18.Узнать, кто старше всех в семьe
+Поля в результирующей таблице:member_name
+
+SELECT member_name
+FROM FamilyMembers
+WHERE birthday = (
+    SELECT MIN(birthday)
+    FROM FamilyMembers
+  )
+
+19.Определить, кто из членов семьи покупал картошку (potato)
+Поля в результирующей таблице:status
+
+SELECT DISTINCT status
+FROM FamilyMembers
+  RIGHT JOIN Payments ON member_id = family_member
+  LEFT JOIN Goods ON good = good_id
+WHERE good_name = 'potato'
+
+20.Сколько и кто из семьи потратил на развлечения (entertainment). Вывести статус в семье, имя, сумму
+Поля в результирующей таблице:status member_name costs
+Используйте конструкцию "as costs" для отображения затраченной суммы членом семьи. Это необходимо для корректной проверки.
+
+SELECT status,
+  member_name,
+  SUM(unit_price * amount) AS costs
+FROM FamilyMembers
+  JOIN Payments ON member_id = family_member
+  JOIN Goods ON good = good_id
+  JOIN GoodTypes ON type = good_type_id
+WHERE good_type_name = 'entertainment'
+GROUP BY status,
+  member_name
+  
+21.Определить товары, которые покупали более 1 раза
+Поля в результирующей таблице:good_name
+
+SELECT DISTINCT good_name
+FROM Goods
+  JOIN Payments ON good_id = good
+GROUP BY good
+HAVING COUNT(good) > 1
+
+22.Найти имена всех матерей (mother)
+Поля в результирующей таблице:member_name
+
+SELECT member_name
+FROM FamilyMembers
+WHERE status = 'mother'
+
+23.Найдите самый дорогой деликатес (delicacies) и выведите его стоимость
+Поля в результирующей таблице: good_name unit_price
+
+SELECT good_name,
+  unit_price
+FROM Goods
+  JOIN Payments ON good_id = good
+WHERE unit_price = (
+    SELECT MAX(unit_price)
+    FROM Payments
+      JOIN Goods ON good_id = good
+      JOIN GoodTypes ON type = good_type_id
+    WHERE good_type_name = 'delicacies'
+  );
+ 
+24.Определить кто и сколько потратил в июне 2005
+Поля в результирующей таблице: member_name costs
+Используйте конструкцию "as costs" для отображения затраченной суммы членом семьи. Это необходимо для корректной проверки.
+
+SELECT member_name,
+  SUM(amount * unit_price) AS costs
+FROM FamilyMembers
+  JOIN Payments ON member_id = family_member
+WHERE MONTH(date) = 06
+  AND YEAR(date) = 2005
+GROUP BY member_name;
+
+25.Определить, какие товары не покупались в 2005 году
+Поля в результирующей таблице:good_name
+Все доступные к покупке продукты находятся в таблице Goods
+
+SELECT good_name
+FROM Goods
+WHERE good_id NOT in (
+    SELECT good
+    FROM Payments
+    WHERE YEAR(date) = 2005
+  )
+ 
+26.Определить группы товаров, которые не приобретались в 2005 году
+Поля в результирующей таблице:good_type_name
+
+SELECT good_type_name
+FROM GoodTypes
+WHERE good_type_id NOT IN(
+    SELECT good_type_id
+    FROM GoodTypes
+      JOIN Goods ON good_type_id = type
+      JOIN Payments ON good_id = good
+    WHERE YEAR(date) = 2005
+  )
+  
+27.Узнать, сколько потрачено на каждую из групп товаров в 2005 году. Вывести название группы и сумму
+Поля в результирующей таблице:good_type_name costs
+Используйте конструкцию "as costs" для отображения затраченной суммы на конкретную группу товаров. Это необходимо для корректной проверки.
+
+SELECT good_type_name,
+  SUM(amount * unit_price) AS costs
+FROM GoodTypes
+  JOIN Goods ON good_type_id = type
+  JOIN Payments ON good_id = good
+WHERE YEAR(date) = 2005
+GROUP BY good_type_name
+
+28.Сколько рейсов совершили авиакомпании с Ростова (Rostov) в Москву (Moscow) ?
+Поля в результирующей таблице:count
+Используйте конструкцию "as count" для агрегатной функции подсчета количества рейсов. Это необходимо для корректной проверки.
+
+SELECT COUNT(*) AS COUNT
+FROM Trip
+WHERE town_from = 'Rostov'
+  and town_to = 'Moscow'
+
+29.Выведите имена пассажиров улетевших в Москву (Moscow) на самолете TU-134
+Поля в результирующей таблице:name
+
+SELECT DISTINCT name
+FROM Passenger
+  JOIN Pass_in_trip ON Pass_in_trip.passenger = Passenger.id
+  JOIN Trip ON Trip.id = Pass_in_trip.trip
+WHERE plane = 'TU-134'
+  AND town_to = 'Moscow'
+
+30.Выведите нагруженность (число пассажиров) каждого рейса (trip). Результат вывести в отсортированном виде по убыванию нагруженности.
+Поля в результирующей таблице:trip count
+Используйте конструкцию "as count" для агрегатной функции подсчета числа пассажиров на рейсе. Это необходимо для корректной проверки.
+
+SELECT trip,
+  COUNT(passenger) as count
+FROM Pass_in_trip
+GROUP BY trip
+ORDER BY count DESC
+
+31.Вывести всех членов семьи с фамилией Quincey.
+Поля в результирующей таблице:*
+
+SELECT *
+FROM FamilyMembers
+WHERE member_name LIKE '%Quincey'
+
+32.Вывести средний возраст людей (в годах), хранящихся в базе данных. Результат округлите до целого в меньшую сторону.
+Поля в результирующей таблице:age
+Используйте конструкцию "as age" для агрегатной функции подсчета среднего возраста. Это необходимо для корректной проверки.
+
+SELECT FLOOR(AVG(YEAR(CURRENT_DATE) - YEAR(birthday))) AS age
+FROM FamilyMembers
+
+33.Найдите среднюю стоимость икры. В базе данных хранятся данные о покупках красной (red caviar) и черной икры (black caviar).
+Поля в результирующей таблице:cost
+Используйте конструкцию "as cost" для агрегатной функции подсчета средней цены икры. Это необходимо для корректной проверки.
+
+SELECT AVG(unit_price) AS cost
+FROM Payments
+WHERE good IN (
+    SELECT good_id
+    FROM Goods
+    WHERE good_name LIKE '%caviar'
+  )
+
+34.Сколько всего 10-ых классов
+Поля в результирующей таблице:count
+Используйте конструкцию "as count" для агрегатной функции подсчета количества классов. Это необходимо для корректной проверки.
+
+SELECT COUNT(name) as count
+FROM Class
+WHERE name LIKE '10%'
+
+35.Сколько различных кабинетов школы использовались 2.09.2019 в образовательных целях ?
+Поля в результирующей таблице:count
+Используйте конструкцию "as count" для агрегатной функции подсчета количества различных кабинетов. Это необходимо для корректной проверки.
+
+SELECT COUNT(classroom) AS COUNT
+FROM Schedule
+WHERE date = '2019-09-02'
+
+36.Выведите информацию об обучающихся живущих на улице Пушкина (ul. Pushkina)?
+Поля в результирующей таблице:*
+
+SELECT *
+FROM Student
+WHERE address LIKE 'ul. Pushkina%'
+
+37.Сколько лет самому молодому обучающемуся ?
+Поля в результирующей таблице:year
+Используйте конструкцию "as year" для указания возраста учащегося. Это необходимо для корректной проверки.
+
+SELECT MIN(TIMESTAMPDIFF(YEAR, birthday, CURRENT_DATE)) AS year
+FROM Student
+
+38.Сколько Анн (Anna) учится в школе ?
+Поля в результирующей таблице:count
+Используйте конструкцию "as count" для агрегатной функции подсчета количества учащихся. Это необходимо для корректной проверки.
+
+SELECT COUNT(first_name) AS COUNT
+FROM Student
+WHERE first_name = 'Anna'
+
+39.Сколько обучающихся в 10 B классе ?
+Поля в результирующей таблице:count
+Используйте конструкцию "as count" для агрегатной функции подсчета количества учащихся. Это необходимо для корректной проверки.
+
+SELECT COUNT(student) AS COUNT
+FROM Student_in_class
+  JOIN Class ON Student_in_class.class = Class.id
+WHERE Class.name = '10 B'
+
+40.Выведите название предметов, которые преподает Ромашкин П.П. (Romashkin P.P.) ?
+Поля в результирующей таблице:subjects
+Используйте конструкцию "as subjects" для указания уч. предметов. Это необходимо для корректной проверки.
+
+SELECT name AS subjects
+FROM Subject
+  JOIN Schedule ON Subject.id = Schedule.subject
+  JOIN Teacher ON Schedule.teacher = Teacher.id
+WHERE last_name = 'Romashkin'
+  AND first_name LIKE 'P%'
+  AND middle_name LIKE 'P%'
